@@ -172,7 +172,7 @@ def transform_word(word,label):
                 chngdwrd = word[:-1]+"i"
             if word[-1] == "e":
                 chngdwrd = word[:-1]
-        if label == "VBP_JJ_NN_TY":
+        if label.split("_")[-1] == "TY":
             if word.endswith("ous"):
                 chngdwrd = word[:-2]+"s"
             if word.endswith("le"):
