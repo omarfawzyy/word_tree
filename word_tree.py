@@ -1,9 +1,80 @@
 from utils import *
 from derivations import Derivations
 def create_word_tree(raw):
-    global vowels
     derivations = Derivations()
     word_tree = {}
+    # stripping raw(input) from any suffix if possible
+    first_order_suffixes = { 
+        "NN":{
+            "NN_JJ_F" : ['ful'], 
+            "NN_JJ_L" : ['less'],
+            "NN_JJ_OUS" : ['ous'],
+            "NN_JJ_D" : ['ed'],
+            "NN_JJ_Y":["y"],
+            "NN_JJ_AL":["ial","ical","al"],
+            "NN_JJ_IC": ["tic","ic"],
+            "NN_JJ_SH": ["ish"]
+        },
+        "VBP":{
+            "VBP_NN_O":["ation","ption","ition","tion","ion"],
+            "VBP_NN_R":["er","or","ar"],
+            "VBP_NN_M":["ment"],
+            "VBP_NN_AL":["al"],
+            "VBP_NN_CE":["ance","ence"],
+            "VBP_NN_T":["ent","ant"],
+            "VBP_JJ":["ive"],
+            "VBP_JJ_BLE":["able","ible"]
+
+        }
+    }
+    second_order_suffixes = {
+        "JJ":{
+            "RB":["ly"],
+            "NN_N":["ness"],
+            "NN_TY":["ity","ty"]
+        }
+    }
+    for pos,types in second_order_suffixes.items():
+        for label,suffixes in types.items():
+            correct_suffix = [raw.endswith(suff) for suff in suffixes]
+            if any(correct_suffix):
+                suffix = suffixes[correct_suffix.index(True)]
+                stem = raw[:-len(suffix)]
+                potentials = get_potential_originals(stem,label)
+                for potential in potentials:
+                    inflecs = getInflections(potential)
+                    if pos in inflecs:
+                        raw = inflecs[pos]
+    for pos,types in first_order_suffixes.items():
+        for label,suffixes in types.items():
+            possible_suffixes = [suffix for suffix in suffixes if raw.endswith(suffix)]
+            valid_word_found = False
+            for suffix in possible_suffixes:
+                stem = raw[:-len(suffix)]
+                potentials = get_potential_originals(stem,label)
+                valid_word_idx = [pos in getInflections(potential) for potential in potentials]
+                if any(valid_word_idx):
+                    raw = potentials[valid_word_idx.index(True)]
+                    valid_word_found = True
+                    break
+            if not valid_word_found and possible_suffixes != []:
+                speller = SpellChecker()
+                suff_lengths = [len(suff) for suff in possible_suffixes]
+                longest_suffix_idx = suff_lengths.index(max(suff_lengths))
+                suffix = possible_suffixes[longest_suffix_idx]
+                stem = raw[:-len(suffix)]
+                correction = speller.correction(stem)
+                if correction not in [stem,raw] and correction != None:
+                    derivations.set(correction)
+                    print("checking if "+correction+" is root")
+                    if derivations.is_derivationally_related(raw):
+                        inflecs = getInflections(raw)
+                        addDerivation(word_tree,label,inflecs,derivations)
+                        raw = correction
+                        break
+                    else:
+                        derivations.unset()
+            if derivations.is_set: break
     pos_dict = getInflections(raw)
     word_tree.update(pos_dict)
     for pos,word in word_tree.copy().items():

@@ -23,6 +23,8 @@ class Derivations:
             self.info_fetched = True
             self.derivationally_related_words.append(origin)
             self.origin_roots = create_roots(soup)
+    def unset(self):
+        self.is_set = False
     def is_derivationally_related(self,derived):
         if not self.info_fetched:return False
         soup = _get_soup_object("https://www.etymonline.com/word/"+derived)

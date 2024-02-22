@@ -192,3 +192,10 @@ def transform_word(word,label):
     except:
         return chngdwrd
     return chngdwrd
+def spell_check(word):
+    speller = SpellChecker()
+    correction = speller.correction(word)
+    if similar(word,correction):
+        return correction
+    else:
+        return None
