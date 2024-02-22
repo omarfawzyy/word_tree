@@ -64,7 +64,7 @@ def create_word_tree(raw):
                 suffix = possible_suffixes[longest_suffix_idx]
                 stem = raw[:-len(suffix)]
                 correction = speller.correction(stem)
-                if correction not in [stem,raw] and correction != None:
+                if correction not in [stem,raw,''] and correction != None:
                     derivations.set(correction)
                     print("checking if "+correction+" is root")
                     if derivations.is_derivationally_related(raw):
@@ -75,6 +75,7 @@ def create_word_tree(raw):
                     else:
                         derivations.unset()
             if derivations.is_set: break
+    # creating word tree from base word(raw)
     pos_dict = getInflections(raw)
     word_tree.update(pos_dict)
     for pos,word in word_tree.copy().items():
@@ -85,7 +86,7 @@ def create_word_tree(raw):
                       "NN_JJ_L" : ['less'],
                       "NN_JJ_OUS" : ['ous'],
                       "NN_JJ_D" : ['ed'],
-                      "NN_JJ_Y":["y"],
+                      "NN_JJ_Y":["ey","y"],
                       "NN_JJ_AL":["ial","ical","al"],
                       "NN_JJ_IC": ["tic","ic"],
                       "NN_JJ_SH": ["ish"]
@@ -183,7 +184,6 @@ def insertSuffixedWord(word_tree,pos,label, suffixes,root,chngdwrd,derivations):
     for suff in suffixes:
         added_suffix = corr_spell(chngdwrd+suff,suffixes) 
         inflecs = getInflections(added_suffix)
-        
         #change label according to pos of added_suffix
         if label == "VBP_NN_T":
             if pos == "NN" and "NN" not in inflecs and "JJ" in inflecs:
@@ -218,6 +218,7 @@ def insertSuffixedWord(word_tree,pos,label, suffixes,root,chngdwrd,derivations):
                 potentials = get_potential_originals(stem,label)
                 if not any(getInflections(potential)!={} for potential in potentials):
                     candidates.append({"stem":stem,"suffix":suffix})
+
     if len(candidates)>1:
         #picking candidate closest to the given word
         scores = [shared_letters(cand["stem"],chngdwrd) for cand in candidates]
