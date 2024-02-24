@@ -1,37 +1,38 @@
 from lemminflect import getAllInflections
 from spellchecker import SpellChecker
-vowels = ["a","e","i","u","o","w","y"]
-def similar(word,derivation): 
-    global vowels
-    word_consonants= []
-    word_vowels = []
-    for char in word:
-        if char not in vowels:
-            word_consonants.append(char)
-        else:
-            word_vowels.append(char)
-    derivation_consonants= []
-    derivation_vowels= []
-    for char in derivation:
-        if char not in vowels:
-            derivation_consonants.append(char)
-        else:
-           derivation_vowels.append(char) 
-    if ((word[0] in vowels and derivation[0] not in vowels)
-    or (derivation[0] in vowels and word[0] not in vowels)):
+vowels = ["a","e","u","w","y","i","o"]
+def similar(word,other_word):
+    vowels = ["a","e","u","w","y","i","o"]
+    possible_transformations = [word]
+    essential_letters = []
+    keep_vowel = True
+    for i in range(len(word)):
+        if word[i] in vowels and keep_vowel:
+            essential_letters.append(word[i])
+            keep_vowel = False
+        if word[i] not in vowels:
+            essential_letters.append(word[i])
+            keep_vowel = True
+    vowels_idxs = [idx for idx in range(len(essential_letters)) if essential_letters[idx] in vowels]
+    cons_idxs = [idx for idx in range(len(essential_letters)) if idx not in vowels_idxs]
+    essential_letters = "".join(essential_letters)
+    if essential_letters not in possible_transformations:
+        possible_transformations.append(essential_letters)
+    last_vowel_removed = (essential_letters[-2] in vowels 
+                          and word[-2] in vowels 
+                          and word[-2] != essential_letters[-2])
+    if len(vowels_idxs)>1 and not last_vowel_removed:
+        #monstr ous
+        excluded = vowels_idxs[-1]
+        possible =  essential_letters[:excluded]+essential_letters[excluded+1:]
+        possible_transformations.append("".join(possible))
+    if len(cons_idxs)>2 and len(essential_letters)-1 in cons_idxs:
+        #absor ption #communic(a) able
+        possible_transformations.append(word[:-1])
+    if any(other_word.startswith(possib) for possib in possible_transformations):
+        return True
+    else:
         return False
-    #checking if words share consonants (last letter exception to accomodate transformations)
-    deriv_len = len(derivation_consonants)
-    word_len = len(word_consonants)
-    if word_len>2 and deriv_len>2:
-        if word_len == deriv_len:
-            derivation_consonants = derivation_consonants[:-1] 
-            word_consonants = word_consonants[:-1]
-        elif word_len+1==deriv_len:
-            derivation_consonants = derivation_consonants[:-1]
-        elif word_len==deriv_len+1:
-            word_consonants = word_consonants[:-1]
-    return  derivation_consonants == word_consonants
     
 def getInflections(raw):
     infl_dict = getAllInflections(raw)
@@ -111,7 +112,7 @@ def corr_spell(word,suffixes):
                 stemmed_cand = cand[:-len(suffixes[correct_suff.index(True)])]
             else: continue
             shared_letters_num = shared_letters(stemmed_cand,stemmed_word)
-            if shared_letters_num > max and similar(stemmed_cand,stemmed_word):
+            if shared_letters_num > max and similar(stemmed_word,stemmed_cand):
                 winner = cand
                 max = shared_letters_num
     except:
@@ -191,3 +192,31 @@ def transform_word(word,label):
         if word[-2:] == "ic":
             chngdwrd = word+"al"
     return chngdwrd
+def singularize(plural):
+    endings = ["ses","shes","ches","xes","zes"]
+    if plural.endswith("ies"):
+        singular = plural[:-3]+"y"
+        inflecs = getInflections(singular)
+        if "NNS" in inflecs:
+            if getInflections(singular)["NNS"]==plural:
+                return singular
+        else:
+            return plural
+    elif any(plural.endswith(ending) for ending in endings):
+        singular = plural[:-2]
+        inflecs = getInflections(singular)
+        if "NNS" in inflecs:
+            if getInflections(singular)["NNS"]==plural:
+                return singular
+        else:
+            return plural
+    elif plural.endswith("s"):
+        singular = plural[:-1]
+        inflecs = getInflections(singular)
+        if "NNS" in inflecs:
+            if getInflections(singular)["NNS"]==plural:
+                return plural[:-1]
+        else:
+            return plural
+    else:
+        return plural
